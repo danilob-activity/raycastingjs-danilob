@@ -64,7 +64,7 @@ function renderCanvas() {
     camera.eye = new Vec3(0, 0, 15.);
     camera.at = new Vec3(0, 0, 0);
     camera.up = new Vec3(0, 1., 0);
-    console.log("Objects: "+objects.length);
+    console.log("Objects: " + objects.length);
     var Vec = new Vec3();
     for (var i = 0; i < canvas.width; i++) {
         for (var j = 0; j < canvas.height; j++) {
@@ -82,57 +82,93 @@ function renderCanvas() {
                 let ray_w = new Ray(multVec4(camera.lookAt(), ray.o), multVec4(camera.lookAt(), ray.d));
                 //raio transformado em coordenadas do mundo
                 var nResult = shape.testIntersectionRay(ray_w);
-                if(result==0 && nResult[0]) result = nResult;
-                else{
-                    if(nResult[0]){
-                        if(nResult[3]<result[3]){
+                if (result == 0 && nResult[0]) result = nResult;
+                else {
+                    if (nResult[0]) {
+                        if (nResult[3] < result[3]) {
                             result = nResult;
-                            
-                        } 
+
+                        }
                     }
                 }
             }
-            
-            if (result!=0) {
+
+            if (result != 0) {
+
                 intercept = true;
                 var position = result[1];
                 var normal = result[2];
                 var viewer = camera.eye;
                 var shape = result[4];
                 var texture = result[5];
-                //console.log(shape.name);
 
-
-                var amb = Vec.compond(Vec.compond(texture, luz_pontual_a),texture);
-                var l = Vec.minus(luz_pontual_p, position);
-                var v = Vec.minus(position, viewer);
-
-                var d = Vec.module(Vec.minus(position, luz_pontual_p));
-                var att = 1. / (luz_pontual_att.x + luz_pontual_att.y * d + luz_pontual_att.z * d * d);
-                var factor_diff = 0;
-                if (Vec.dot(l, normal) > 0) {
-                    factor_diff = Math.max(Vec.dot(l, normal) / (Vec.module(l) * Vec.module(normal)), 0);
+                //verificar sombra
+                //fazer teste com todas as luzes
+                var is_shadow = false;
+                for (var n = 0; n < objects.length; n++) {
+                    if (objects[n] != shape) {
+                        let shape = objects[n];
+                        let ray_s = new Ray(position, luz_pontual_p);
+                        var nResult = shape.testIntersectionRay(ray_s);
+                        if (nResult[0]) {
+                            if (nResult[3] < Vec.module(Vec.minus(point, luz_pontual_p))) {
+                                is_shadow = true;
+                                break;
+                            }
+                        }
+                    }
                 }
-                //material do objeto com a luz -> cor difusa
-                var diff = Vec.compond(Vec.compond(texture, luz_pontual_d),texture);
-                //aplicando o fator e a atenuação
-                diff = Vec.prod(diff, att * factor_diff);
+                var colorF;
 
-                //parte especular
-                //var l = Vec.unitary(l);
-                var r = Vec.minus(Vec.prod(Vec.prod(normal, Vec.dot(l, normal)), 2), l);
-                var h = Vec.unitary(Vec.minus(v, luz_pontual_p));
-                r = Vec.unitary(Vec.sum(r, h));
-                factor_spe = 0;
-                if (Vec.dot(r, normal) > 0) {
-                    factor_spe = Math.max(Math.pow(Vec.dot(r, normal), shape.shine), 0);
-                }
-                //material do objeto com a luz -> cor especular
-                var spe = Vec.compond(Vec.compond(texture, luz_pontual_s),texture);
-                //aplicando o fator e a atenuação
-                spe = Vec.prod(spe, att * factor_spe);
-                var colorF = Vec.sum(amb, Vec.sum(diff, spe));
-             
+                // if (is_shadow) {
+                //     var colorF = Vec.compond(shape.ambient, luz_pontual_a);
+                // } else {
+                    //console.log(shape.name);
+                    var Ma, Md, Me;
+                    if (texture == null) {
+                        Ma = shape.ambient;
+                        Md = shape.diffuse;
+                        Me = shape.specular;
+                    } else {
+                        Ma = texture;
+                        Md = texture;
+                        Me = texture;
+                    }
+
+                    var amb = Vec.compond(Ma, luz_pontual_a);
+                    var l = Vec.minus(luz_pontual_p, position);
+                    var v = Vec.minus(position, viewer);
+
+                    var d = Vec.module(Vec.minus(position, luz_pontual_p));
+                    var att = 1. / (luz_pontual_att.x + luz_pontual_att.y * d + luz_pontual_att.z * d * d);
+                    var factor_diff = 0;
+                    if (Vec.dot(l, normal) > 0) {
+                        factor_diff = Math.max(Vec.dot(l, normal) / (Vec.module(l) * Vec.module(normal)), 0);
+                    }
+                    //material do objeto com a luz -> cor difusa
+
+                    var diff = Vec.compond(Md, luz_pontual_d);
+                    //aplicando o fator e a atenuação
+                    diff = Vec.prod(diff, att * factor_diff);
+
+                    //parte especular
+                    //var l = Vec.unitary(l);
+                    var r = Vec.minus(Vec.prod(Vec.prod(normal, Vec.dot(l, normal)), 2), l);
+                    var h = Vec.unitary(Vec.minus(v, luz_pontual_p));
+                    r = Vec.unitary(Vec.sum(r, h));
+                    factor_spe = 0;
+                    if (Vec.dot(r, normal) > 0) {
+                        factor_spe = Math.max(Math.pow(Vec.dot(r, normal), shape.shine), 0);
+                    }
+                    //material do objeto com a luz -> cor especular
+                    var spe = Vec.compond(Me, luz_pontual_s);
+                    //aplicando o fator e a atenuação
+                    spe = Vec.prod(spe, att * factor_spe);
+                    colorF = Vec.sum(amb, Vec.sum(diff, spe));
+                    if(is_shadow){
+                        colorF = Vec.prod(Vec.sum(diff, amb),0.7);
+                    }
+                //}
                 ctx.fillStyle = "rgb(" + Math.min(colorF.x, 1) * 255 + "," + Math.min(colorF.y, 1) * 255 + "," + Math.min(colorF.z, 1) * 255 + ")";
                 ctx.fillRect(i, j, 1, 1);
             }
@@ -148,7 +184,7 @@ function renderCanvas() {
 }
 
 
-save.addEventListener("click", function() {
+save.addEventListener("click", function () {
     var fullQuality = canvas.toDataURL('image/png', 1.0);
     window.location.href = fullQuality;
 });

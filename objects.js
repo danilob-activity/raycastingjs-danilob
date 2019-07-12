@@ -234,9 +234,9 @@ function getImageData( image ) {
 }
 
 Shape.prototype.getTextureColor = function(s,t){
-    // if(this.imageTexture==null){
-    //     return new Vec3(1,1,1); //retorna branco
-    // }else{
+    if(this.imageTexture==null){
+        return null; //retorna branco
+    }else{
         var width =this.imageTexture.width;
         var height = this.imageTexture.height;
         // if((s>1||s<0) || (t<0 || t>1)) 
@@ -249,30 +249,24 @@ Shape.prototype.getTextureColor = function(s,t){
         var pixel = this.contextCanvas.getImageData(x, y, 1, 1).data;
         // if(pixel[0]==0) 
         // {
-        console.log(pixel);
+        //console.log(pixel);
             // console.log("s: "+s+"\t t:"+t);
             // console.log("x: "+x+", y:"+y);
         // }
         return new Vec3(pixel[0]/255.,pixel[1]/255.,pixel[2]/255.);
 
-    //}
+    }
     
     
 }
 
 Shape.prototype.getCoordsParametrics = function(point){
-    //if(this.geometry==sphere){
+    if(this.geometry==sphere){
         var u = 0.5 + Math.atan2(point.x,point.z)/(2*Math.PI);
         var v = 0.5 - (Math.asin(point.y)/(Math.PI));
-        
-        // if(u>max) max = u;
-        // if(u<min) min = u;
-        //console.log("max u: "+max+", min u: "+min);
-        // var u = Math.abs(Math.atan2(x, z) / (2*Math.PI) + 0.5);
-        // var v = Math.abs(y * 0.5 + 0.5);
-        //return new Vec3(u,v,0);
+
         return new Vec3(u,v,0);
-    //}
+    }
     
     //return new Vec3(1,1,0);
     
@@ -300,7 +294,9 @@ Shape.prototype.testIntersectionRay = function(ray) {
             var t1 = (-b + Math.sqrt(delta)) / (2 * a);
             var t2 = (-b - Math.sqrt(delta)) / (2 * a);
             var t = Math.min(t1, t2);
-
+            if(t<0){
+                return [false];
+            }
             var point = ray.get(t);
             var normal = point;
             var coodParams = this.getCoordsParametrics(point);
