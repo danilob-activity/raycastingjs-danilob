@@ -7,7 +7,7 @@
     <script type="text/javascript" src="mathfunctions.js"></script>
     <link href="layout.css" rel="stylesheet">
     <script type="text/javascript" src="objects.js"></script>
-</head>
+   </head>
 
 
 <body>
@@ -19,9 +19,21 @@
             </div>
             <textarea id="code" class="playable-code">
 sizeWindow(500,500);
-s1 = new Shape();
+s1 = new Shape("basquete");
 s1.setTranslate(0, 5, -15);
+s1.setRotateY(75);
+s1.setRotateX(45);
 s1.setScale(3, 3, 3); 
+s1.setTexture("imgs/balldimpled.png");
+
+
+s2 = new Shape("sinuca");
+s2.setTranslate(0, -3, -15);
+s2.setRotateY(75);
+s2.setRotateX(45);
+s2.setScale(4, 4, 4); 
+s2.setTexture("imgs/ball7.png");
+addObject(s2);
 addObject(s1);  
             </textarea>
         </div>

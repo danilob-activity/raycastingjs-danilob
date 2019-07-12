@@ -155,6 +155,7 @@ function Shape() {
     this.diffuse = new Vec3(228 / 255., 44 / 255., 100 / 255.);
     this.specular = new Vec3(208 / 235., 44 / 255., 80 / 255.);
     this.shine = 80.;
+    this.imageTexture = null;
 }
 
 function Shape(name) {
@@ -167,6 +168,7 @@ function Shape(name) {
     this.diffuse = new Vec3(228 / 255., 44 / 255., 100 / 255.);
     this.specular = new Vec3(208 / 235., 44 / 255., 80 / 255.);
     this.shine = 225;
+    this.imageTexture = null;
 }
 
 Shape.prototype.setScale = function(x = 0, y = 0, z = 0) {
@@ -205,15 +207,75 @@ Shape.prototype.transformMatrixVec = function() {
 
 Shape.prototype.transformMatrixInverse = function() {
     var Ti = translateMatrixI(this.translate.x, this.translate.y, this.translate.z); //TODO: modificar para receber a matriz de escala
-    var Ri = multMatrix(rotateMatrixXI(this.rotate.z), multMatrix(rotateMatrixYI(this.rotate.y), rotateMatrixZI(this.rotate.x))); //TODO: modificar para receber a matriz de rotação
+    var Ri = multMatrix(rotateMatrixZI(this.rotate.z), multMatrix(rotateMatrixYI(this.rotate.y), rotateMatrixXI(this.rotate.x))); //TODO: modificar para receber a matriz de rotação
     var Si = scaleMatrixI(this.scale.x, this.scale.y, this.scale.z);
     return multMatrix(Si, multMatrix(Ri, Ti));
 }
 
 Shape.prototype.transformMatrixVecInverse = function() {
-    var Ri = multMatrix(rotateMatrixXI(this.rotate.z), multMatrix(rotateMatrixYI(this.rotate.y), rotateMatrixZI(this.rotate.x))); //TODO: modificar para receber a matriz de rotação
+    var Ri = multMatrix(rotateMatrixZI(this.rotate.z), multMatrix(rotateMatrixYI(this.rotate.y), rotateMatrixXI(this.rotate.x))); //TODO: modificar para receber a matriz de rotação
     var Si = scaleMatrixI(this.scale.x, this.scale.y, this.scale.z);
     return multMatrix(Si, Ri);
+}
+
+Shape.prototype.setTexture = function(url){
+    this.imageTexture = new Image();
+    this.imageTexture.src = url;
+    this.contextCanvas = getImageData(this.imageTexture);
+}
+
+function getImageData( image ) {
+    var canvas = document.createElement('canvas');
+    var context = canvas.getContext('2d');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    context.drawImage(image, 0, 0);
+    return context;
+}
+
+Shape.prototype.getTextureColor = function(s,t){
+    // if(this.imageTexture==null){
+    //     return new Vec3(1,1,1); //retorna branco
+    // }else{
+        var width =this.imageTexture.width;
+        var height = this.imageTexture.height;
+        // if((s>1||s<0) || (t<0 || t>1)) 
+        //     console.log("s: "+s+"\t t:"+t);
+        var x = Math.floor(width*s);
+        var y = Math.floor(height*t);
+        //if((x>width||x<0) || (y>height||y<0)) console.log("x: "+x+", y:"+y);
+        
+       
+        var pixel = this.contextCanvas.getImageData(x, y, 1, 1).data;
+        // if(pixel[0]==0) 
+        // {
+        console.log(pixel);
+            // console.log("s: "+s+"\t t:"+t);
+            // console.log("x: "+x+", y:"+y);
+        // }
+        return new Vec3(pixel[0]/255.,pixel[1]/255.,pixel[2]/255.);
+
+    //}
+    
+    
+}
+
+Shape.prototype.getCoordsParametrics = function(point){
+    //if(this.geometry==sphere){
+        var u = 0.5 + Math.atan2(point.x,point.z)/(2*Math.PI);
+        var v = 0.5 - (Math.asin(point.y)/(Math.PI));
+        
+        // if(u>max) max = u;
+        // if(u<min) min = u;
+        //console.log("max u: "+max+", min u: "+min);
+        // var u = Math.abs(Math.atan2(x, z) / (2*Math.PI) + 0.5);
+        // var v = Math.abs(y * 0.5 + 0.5);
+        //return new Vec3(u,v,0);
+        return new Vec3(u,v,0);
+    //}
+    
+    //return new Vec3(1,1,0);
+    
 }
 
 Shape.prototype.testIntersectionRay = function(ray) {
@@ -237,19 +299,22 @@ Shape.prototype.testIntersectionRay = function(ray) {
         if (delta >= 0) {
             var t1 = (-b + Math.sqrt(delta)) / (2 * a);
             var t2 = (-b - Math.sqrt(delta)) / (2 * a);
-            t = Math.min(t1, t2);
+            var t = Math.min(t1, t2);
 
             var point = ray.get(t);
             var normal = point;
+            var coodParams = this.getCoordsParametrics(point);
+            var texture_color = this.getTextureColor(coodParams.x,coodParams.y);
             var M = this.transformMatrix();
             point = multVec4(M, point);
             M = this.transformMatrixVec();
             normal = multVec4(M, normal);
             normal = Vec.unitary(normal);
             var t_ = Vec.module(Vec.minus(point, ray_w.o));
-            return [true, point, normal, t_, this];
+            
+            return [true, point, normal, t_, this,texture_color];
         }
 
     }
-    return [false, null];
+    return [false];
 }
