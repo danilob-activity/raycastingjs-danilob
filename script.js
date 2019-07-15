@@ -56,7 +56,7 @@ function renderCanvas() {
     var luz_pontual_a = new Vec3(0.1, 0.1, 0.1); //componente ambiente
     var luz_pontual_d = new Vec3(0.8, 0.8, 0.8); //componente difusa
     var luz_pontual_s = new Vec3(1, 1, 1); //componente especular
-    var luz_pontual_p = new Vec3(15, 15, 15);
+    var luz_pontual_p = new Vec3(15, 15, 0);
     var luz_pontual_att = new Vec3(1, 0, 0);
 
     //TODO:coloque uma função para especificar a câmera via interface
@@ -78,19 +78,17 @@ function renderCanvas() {
             var intercept = false;
             var result = 0;
             for (var k = 0; k < objects.length; k++) {
-                let shape = objects[k];
-                let ray_w = new Ray(multVec4(camera.lookAt(), ray.o), multVec4(camera.lookAt(), ray.d));
+                var shape = objects[k];
+                var ray_w = new Ray(multVec4(camera.lookAt(), ray.o), multVec4(camera.lookAt(), ray.d));
                 //raio transformado em coordenadas do mundo
-                var nResult = shape.testIntersectionRay(ray_w);
-                if (result == 0 && nResult[0]) result = nResult;
-                else {
+                var nResult = shape.testIntersectionRay(ray_w);    
                     if (nResult[0]) {
-                        if (nResult[3] < result[3]) {
+                        if(result==0) result = nResult;
+                        else if (nResult[3] < result[3]) {
                             result = nResult;
-
                         }
                     }
-                }
+                
             }
 
             if (result != 0) {
@@ -105,16 +103,19 @@ function renderCanvas() {
                 //verificar sombra
                 //fazer teste com todas as luzes
                 var is_shadow = false;
+                //console.log("inicio do teste");
                 for (var n = 0; n < objects.length; n++) {
                     if (objects[n] != shape) {
-                        let shape = objects[n];
-                        let ray_s = new Ray(position, luz_pontual_p);
-                        var nResult = shape.testIntersectionRay(ray_s);
+                        var shapet = objects[n];
+                        //console.log("testando com: "+shapet.name);
+
+                        var ray_s = new Ray(position, luz_pontual_p);
+                        var nResult = shapet.testIntersectionRay(ray_s);
                         if (nResult[0]) {
-                            if (nResult[3] < Vec.module(Vec.minus(point, luz_pontual_p))) {
+                            //if (nResult[3] < Vec.module(Vec.minus(point, luz_pontual_p))) {
                                 is_shadow = true;
                                 break;
-                            }
+                            //}
                         }
                     }
                 }

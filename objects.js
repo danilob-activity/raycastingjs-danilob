@@ -12,6 +12,7 @@ Ray.prototype.get = function(t) {
 }
 
 
+
 function Vec3() {
     this.x = 0;
     this.y = 0;
@@ -219,18 +220,20 @@ Shape.prototype.transformMatrixVecInverse = function() {
 }
 
 Shape.prototype.setTexture = function(url){
+    //https://pt-br.imgbb.com/
     this.imageTexture = new Image();
-    this.imageTexture.src = url;
-    this.contextCanvas = getImageData(this.imageTexture);
+    //this.imageTexture.crossOrigin="Anonymous" ;
+    this.imageTexture.src = url;  
+    this.getImageData(this.imageTexture);
 }
 
-function getImageData( image ) {
+Shape.prototype.getImageData = function ( image ) {
     var canvas = document.createElement('canvas');
-    var context = canvas.getContext('2d');
+    this.contextCanvas = canvas.getContext('2d');
     canvas.width = image.width;
     canvas.height = image.height;
-    context.drawImage(image, 0, 0);
-    return context;
+    this.contextCanvas.drawImage(image, 0, 0);
+    //return context;
 }
 
 Shape.prototype.getTextureColor = function(s,t){
@@ -239,20 +242,12 @@ Shape.prototype.getTextureColor = function(s,t){
     }else{
         var width =this.imageTexture.width;
         var height = this.imageTexture.height;
-        // if((s>1||s<0) || (t<0 || t>1)) 
-        //     console.log("s: "+s+"\t t:"+t);
+
         var x = Math.floor(width*s);
         var y = Math.floor(height*t);
-        //if((x>width||x<0) || (y>height||y<0)) console.log("x: "+x+", y:"+y);
-        
-       
+
         var pixel = this.contextCanvas.getImageData(x, y, 1, 1).data;
-        // if(pixel[0]==0) 
-        // {
-        //console.log(pixel);
-            // console.log("s: "+s+"\t t:"+t);
-            // console.log("x: "+x+", y:"+y);
-        // }
+        
         return new Vec3(pixel[0]/255.,pixel[1]/255.,pixel[2]/255.);
 
     }
@@ -272,17 +267,25 @@ Shape.prototype.getCoordsParametrics = function(point){
     
 }
 
-Shape.prototype.testIntersectionRay = function(ray) {
+//configurar servidor para rodar a aplicação
+//python -m SimpleHTTPServer 8000
+
+
+Shape.prototype.testIntersectionRay = function(ray_from_cam) {
     //salvando raio em coordenadas do mundo para calcular o parâmetro t
+    var ray = ray_from_cam;
     var ray_w = ray;
+    var origin = ray_w.o;
     var M_i = this.transformMatrixInverse();
     var M_i_v = this.transformMatrixVecInverse();
     var Vec = new Vec3();
     //transformando raio para coordenadas locais do objeto
     Vec = new Vec3();
-    ray.d = Vec.minus(ray.d, ray.o);
+    ray.d = (Vec.minus(ray.d, ray.o));
+    ray.d = Vec.unitary(ray.d);
     ray.o = multVec4(M_i, ray.o);
     ray.d = multVec4(M_i_v, ray.d);
+    ///ray.d = Vec.unitary(ray.d);
 
     if (this.geometry == sphere) { //testar interseção com a esfera
         //interseção com esfera na origem e raio unitário
@@ -303,10 +306,10 @@ Shape.prototype.testIntersectionRay = function(ray) {
             var texture_color = this.getTextureColor(coodParams.x,coodParams.y);
             var M = this.transformMatrix();
             point = multVec4(M, point);
-            M = this.transformMatrixVec();
-            normal = multVec4(M, normal);
+            var Mv = this.transformMatrixVec();
+            normal = multVec4(Mv, normal);
             normal = Vec.unitary(normal);
-            var t_ = Vec.module(Vec.minus(point, ray_w.o));
+            var t_ = Vec.module(Vec.minus(origin,point));
             
             return [true, point, normal, t_, this,texture_color];
         }
