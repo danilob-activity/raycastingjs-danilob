@@ -40,6 +40,7 @@ function sizeWindow(w, h) {
 textarea.addEventListener("input", updateScene());
 
 function renderCanvas() {
+    //python -m SimpleHTTPServer 8000
     updateScene();
     stop = true;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
